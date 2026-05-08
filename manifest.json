@@ -1,0 +1,22 @@
+{
+  "name": "NY 시초가 스캐너",
+  "short_name": "NY Scanner",
+  "description": "뉴욕 시초가 코인 스캐너",
+  "start_url": "/coin-scanner/coin-scanner.html",
+  "display": "standalone",
+  "background_color": "#060809",
+  "theme_color": "#0d1117",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

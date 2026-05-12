@@ -950,56 +950,67 @@ async function loadChart(){
         ctx.setLineDash([4,3]);
         ctx.beginPath(); ctx.moveTo(boxLeft, midY); ctx.lineTo(boxRight, midY); ctx.stroke();
 
-        // ── 손익비 박스 (AM10 ~ PM01) ──
+        // ── 손익비 박스 (AM10 ~ PM01, 가격 기준 고정) ──
         if(rrIdx && rrIdx.length >= 2) {
           const rrLeft  = x.getPixelForValue(rrIdx[0]);
           const rrRight = x.getPixelForValue(rrIdx[rrIdx.length-1]);
 
           if(!isNaN(rrLeft) && !isNaN(rrRight) && rrLeft !== rrRight) {
-            const profitTop    = y.getPixelForValue(midPrice + range);
-            const profitBottom = midY;
-            const entryTop     = midY;
-            const entryBottom  = y.getPixelForValue(midPrice - range/2);
-            const lossTop      = y.getPixelForValue(midPrice - range/2);
-            const lossBottom   = y.getPixelForValue(midPrice - range);
+            const profitTopPx    = y.getPixelForValue(midPrice + range);
+            const profitBottomPx = y.getPixelForValue(midPrice);
+            const entryTopPx     = y.getPixelForValue(midPrice);
+            const entryBottomPx  = y.getPixelForValue(midPrice - range/2);
+            const lossTopPx      = y.getPixelForValue(midPrice - range/2);
+            const lossBottomPx   = y.getPixelForValue(midPrice - range);
+
+            // 차트 영역 클리핑
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(rrLeft, top, rrRight - rrLeft, bottom - top);
+            ctx.clip();
+            ctx.setLineDash([]);
 
             // 수익 박스 (초록)
-            ctx.setLineDash([]);
             ctx.fillStyle = 'rgba(63,185,80,0.08)';
-            ctx.fillRect(rrLeft, profitTop, rrRight-rrLeft, profitBottom-profitTop);
+            ctx.fillRect(rrLeft, profitTopPx, rrRight-rrLeft, profitBottomPx-profitTopPx);
             ctx.strokeStyle = 'rgba(63,185,80,0.7)';
             ctx.lineWidth = 1.2;
-            ctx.strokeRect(rrLeft, profitTop, rrRight-rrLeft, profitBottom-profitTop);
+            ctx.strokeRect(rrLeft, profitTopPx, rrRight-rrLeft, profitBottomPx-profitTopPx);
 
             // 진입 구간 박스 (노랑)
             ctx.fillStyle = 'rgba(210,153,34,0.1)';
-            ctx.fillRect(rrLeft, entryTop, rrRight-rrLeft, entryBottom-entryTop);
+            ctx.fillRect(rrLeft, entryTopPx, rrRight-rrLeft, entryBottomPx-entryTopPx);
             ctx.strokeStyle = 'rgba(210,153,34,0.7)';
             ctx.lineWidth = 1.2;
-            ctx.strokeRect(rrLeft, entryTop, rrRight-rrLeft, entryBottom-entryTop);
+            ctx.strokeRect(rrLeft, entryTopPx, rrRight-rrLeft, entryBottomPx-entryTopPx);
 
             // 손절 구간 박스 (빨강)
             ctx.fillStyle = 'rgba(248,81,73,0.08)';
-            ctx.fillRect(rrLeft, lossTop, rrRight-rrLeft, lossBottom-lossTop);
+            ctx.fillRect(rrLeft, lossTopPx, rrRight-rrLeft, lossBottomPx-lossTopPx);
             ctx.strokeStyle = 'rgba(248,81,73,0.7)';
             ctx.lineWidth = 1.2;
-            ctx.strokeRect(rrLeft, lossTop, rrRight-rrLeft, lossBottom-lossTop);
+            ctx.strokeRect(rrLeft, lossTopPx, rrRight-rrLeft, lossBottomPx-lossTopPx);
 
-            // 라벨
+            // 라벨 (화면 안에 있을 때만 표시)
             ctx.font = 'bold 9px DM Mono, monospace';
-
-            // 수익 라벨
-            ctx.fillStyle = 'rgba(63,185,80,0.95)';
-            ctx.fillText('익절 ' + fmtPrice(midPrice + range), rrLeft+5, profitTop+13);
-
-            // 진입 라벨
-            ctx.fillStyle = 'rgba(210,153,34,0.95)';
-            ctx.fillText('진입 ' + fmtPrice(midPrice), rrLeft+5, entryTop+13);
-            ctx.fillText('↓ ' + fmtPrice(midPrice - range/2), rrLeft+5, entryBottom-4);
-
-            // 손절 라벨
-            ctx.fillStyle = 'rgba(248,81,73,0.95)';
-            ctx.fillText('손절 ' + fmtPrice(midPrice - range), rrLeft+5, lossBottom-4);
+            const lx = rrLeft + 5;
+            if(profitTopPx > top && profitTopPx < bottom){
+              ctx.fillStyle='rgba(63,185,80,0.95)';
+              ctx.fillText('익절 '+fmtPrice(midPrice+range), lx, profitTopPx+12);
+            }
+            if(entryTopPx > top && entryTopPx < bottom){
+              ctx.fillStyle='rgba(210,153,34,0.95)';
+              ctx.fillText('진입 '+fmtPrice(midPrice), lx, entryTopPx+12);
+            }
+            if(entryBottomPx > top && entryBottomPx < bottom){
+              ctx.fillStyle='rgba(210,153,34,0.95)';
+              ctx.fillText('↓ '+fmtPrice(midPrice-range/2), lx, entryBottomPx-4);
+            }
+            if(lossBottomPx > top && lossBottomPx < bottom){
+              ctx.fillStyle='rgba(248,81,73,0.95)';
+              ctx.fillText('손절 '+fmtPrice(midPrice-range), lx, lossBottomPx-4);
+            }
+            ctx.restore();
           }
         }
 
@@ -1193,9 +1204,9 @@ async function loadChart(){
           legend:{display:true, labels:{color:'#8b949e', font:{size:9,family:'DM Mono'}, boxWidth:16, boxHeight:1, padding:8, filter:item=>item.label&&!item.label.startsWith('BB')&&item.label!=='가격'}},
           tooltip:{ enabled:false },
           zoom:{
-            pan:{ enabled:true, mode:'x' },
+            pan:{ enabled:true, mode:'xy' },
             limits:{ x:{ min:0, max:sl.length + EXTRA - 1, minRange:10 } },
-            zoom:{ wheel:{ enabled:true }, pinch:{ enabled:true }, mode:'x' }
+            zoom:{ wheel:{ enabled:true }, pinch:{ enabled:true }, mode:'xy' }
           }
         },
         scales:{
